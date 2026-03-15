@@ -2,8 +2,8 @@ import { useState, useMemo, useCallback } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -12,9 +12,8 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts'
-import type { BudgetMap } from '../types'
-import type { Lancamento } from '../types'
-import { aggregateSubcategoriaByMonth } from '../lib/aggregations'
+import type { BudgetMap, Lancamento } from '../types'
+import { aggregateCategoriaByMonth } from '../lib/aggregations'
 
 interface BudgetSubcategoriaHistoricoChartProps {
   lancamentos: Lancamento[]
@@ -30,11 +29,6 @@ function formatBrl(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
-function shortLabel(key: string) {
-  const parts = key.split('|')
-  return parts.length === 2 ? parts[1] : key
-}
-
 export function BudgetSubcategoriaHistoricoChart({
   lancamentos,
   budget,
@@ -42,8 +36,8 @@ export function BudgetSubcategoriaHistoricoChart({
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [open, setOpen] = useState(false)
 
-  const { months, subcategorias, data } = useMemo(
-    () => aggregateSubcategoriaByMonth(lancamentos, budget),
+  const { months, categorias, data } = useMemo(
+    () => aggregateCategoriaByMonth(lancamentos, budget),
     [lancamentos, budget]
   )
 
@@ -56,7 +50,7 @@ export function BudgetSubcategoriaHistoricoChart({
     })
   }, [])
 
-  const activeKeys = selected.size > 0 ? Array.from(selected) : subcategorias.slice(0, 5)
+  const activeKeys = selected.size > 0 ? Array.from(selected) : categorias.slice(0, 5)
 
   const chartData = useMemo(
     () =>
@@ -67,7 +61,7 @@ export function BudgetSubcategoriaHistoricoChart({
     [data]
   )
 
-  if (subcategorias.length === 0) return null
+  if (categorias.length === 0) return null
 
   return (
     <section style={{ marginBottom: 32 }}>
@@ -91,10 +85,10 @@ export function BudgetSubcategoriaHistoricoChart({
             margin: 0,
           }}
         >
-          % do budget usado por subcategoria — histórico mensal
+          % do budget usado por categoria — histórico mensal
         </h2>
 
-        {/* Subcategory selector */}
+        {/* Category selector */}
         <div style={{ position: 'relative' }}>
           <button
             type="button"
@@ -114,7 +108,7 @@ export function BudgetSubcategoriaHistoricoChart({
           >
             <span>
               {selected.size === 0
-                ? `Top 5 subcategorias`
+                ? `Top 5 categorias`
                 : `${selected.size} selecionada(s)`}
             </span>
             <span style={{ fontSize: 10 }}>{open ? '▲' : '▼'}</span>
@@ -154,7 +148,7 @@ export function BudgetSubcategoriaHistoricoChart({
               >
                 Usar top 5
               </button>
-              {subcategorias.map((key, i) => (
+              {categorias.map((key, i) => (
                 <label
                   key={key}
                   style={{
@@ -180,7 +174,7 @@ export function BudgetSubcategoriaHistoricoChart({
                       flexShrink: 0,
                     }}
                   />
-                  {shortLabel(key)}
+                  {key}
                 </label>
               ))}
             </div>
@@ -195,7 +189,7 @@ export function BudgetSubcategoriaHistoricoChart({
       ) : (
         <>
           <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+            <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
                 dataKey="monthLabel"
@@ -240,7 +234,7 @@ export function BudgetSubcategoriaHistoricoChart({
                             key={String(p.dataKey)}
                             style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 2 }}
                           >
-                            <span style={{ color: p.color }}>{shortLabel(String(p.dataKey))}</span>
+                            <span style={{ color: p.color }}>{String(p.dataKey)}</span>
                             <span style={{ fontWeight: 600 }}>
                               {p.value}% · {formatBrl(Number(absVal))}
                             </span>
@@ -253,20 +247,22 @@ export function BudgetSubcategoriaHistoricoChart({
               />
               <Legend
                 formatter={(value) => (
-                  <span style={{ fontSize: 11, color: '#555' }}>{shortLabel(value)}</span>
+                  <span style={{ fontSize: 11, color: '#555' }}>{value}</span>
                 )}
               />
               {activeKeys.map((key, i) => (
-                <Bar
+                <Line
                   key={key}
+                  type="monotone"
                   dataKey={key}
                   name={key}
-                  fill={PALETTE[subcategorias.indexOf(key) % PALETTE.length] ?? PALETTE[i % PALETTE.length]}
-                  radius={[3, 3, 0, 0]}
-                  maxBarSize={28}
+                  stroke={PALETTE[categorias.indexOf(key) % PALETTE.length] ?? PALETTE[i % PALETTE.length]}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
                 />
               ))}
-            </BarChart>
+            </LineChart>
           </ResponsiveContainer>
           <p style={{ fontSize: 11, color: '#aaa', marginTop: 8, textAlign: 'center' }}>
             Linha vermelha tracejada = 100% do budget. Valores acima indicam estouro.

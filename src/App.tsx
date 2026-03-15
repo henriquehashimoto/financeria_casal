@@ -119,6 +119,11 @@ function App() {
     return Array.from(months).sort().reverse().slice(0, 24)
   }, [lancamentos])
 
+  const ultimaData = useMemo(() => {
+    if (lancamentos.length === 0) return null
+    return lancamentos.reduce((max, l) => (l.data > max ? l.data : max), lancamentos[0].data)
+  }, [lancamentos])
+
   return (
     <div style={{ minHeight: '100vh', padding: '2rem', maxWidth: 960, margin: '0 auto' }}>
       <header style={{ marginBottom: '2rem' }}>
@@ -262,6 +267,7 @@ function App() {
               totalReceitasHistorico={summary.totalReceitasHistorico}
               mediaReceitasMensal={summary.mediaReceitasMensal}
               mesSelecionadoLabel={summary.mesSelecionadoLabel}
+              ultimaData={ultimaData}
             />
           </section>
 
@@ -313,6 +319,8 @@ function App() {
           <section style={{ marginBottom: '2rem' }}>
             <GastosPorCategoriaChart
               data={aggregated}
+              lancamentos={lancamentos}
+              filteredMonth={filteredMonth}
               periodLabel={
                 monthFilter === 'current'
                   ? '(mês atual)'

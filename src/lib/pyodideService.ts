@@ -78,6 +78,28 @@ def normalize_dataframe(df):
     return out[OUTPUT_COLUMNS]
 
 
+def parse_itau_pdf(content_bytes):
+    import pypdf
+    reader = pypdf.PdfReader(io.BytesIO(content_bytes))
+    full_text = "\\n".join(page.extract_text() or "" for page in reader.pages)
+    line_re = re.compile(r"^(\\d{2}/\\d{2}/\\d{4})\\s+(.+?)\\s+([-]?\\d[\\d.]*,\\d{2})\\s*$")
+    rows = []
+    for line in full_text.splitlines():
+        m = line_re.match(line.strip())
+        if m:
+            date_str = m.group(1)
+            desc = m.group(2).strip()
+            val_str = m.group(3)
+            if desc == "SALDO DO DIA":
+                continue
+            rows.append({
+                "Data": normalize_date(date_str),
+                "Descricao": clean_description(desc),
+                "Valor": normalize_value(val_str),
+            })
+    return pd.DataFrame(rows, columns=OUTPUT_COLUMNS)
+
+
 def parse_ofx(content_bytes):
     txt = content_bytes.decode("latin-1")
     data = []
@@ -105,6 +127,8 @@ def read_file_bytes(name, content_bytes):
         return pd.read_excel(io.BytesIO(content_bytes))
     if ext == ".ofx":
         return parse_ofx(content_bytes)
+    if ext == ".pdf":
+        return parse_itau_pdf(content_bytes)
     raise Exception(f"Formato nao suportado: {ext}")
 
 
@@ -114,6 +138,8 @@ def classify_file(name):
         return "Henrique_Nubank_Cartao"
     if "nubank" in n and "conta" in n:
         return "Henrique_Nubank_Conta"
+    if "keth" in n and "itau" in n:
+        return "Keth_Itau_Conta"
     if "itau" in n:
         return "Henrique_Itau_Conta"
     if "keth" in n:
@@ -130,6 +156,7 @@ def process_files(file_map):
         "Henrique_Nubank_Conta": [],
         "Henrique_Nubank_Cartao": [],
         "Henrique_Itau_Conta": [],
+        "Keth_Itau_Conta": [],
         "Keth_Cartao": [],
     }
     logs = []
@@ -163,6 +190,7 @@ export interface CsvResults {
   Henrique_Itau_Conta: string
   Henrique_Nubank_Conta: string
   Henrique_Nubank_Cartao: string
+  Keth_Itau_Conta: string
   Keth_Cartao: string
 }
 
@@ -176,8 +204,11 @@ async function getPyodide(onProgress?: (msg: string) => void): Promise<PyodideIn
     indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.27.0/full/',
   })
 
-  onProgress?.('Instalando pandas...')
-  await pyodideInstance.loadPackage(['pandas', 'openpyxl'])
+  onProgress?.('Instalando dependências Python...')
+  await pyodideInstance.loadPackage(['pandas', 'micropip'])
+  await pyodideInstance.runPythonAsync(
+    'import micropip; await micropip.install(["openpyxl", "pypdf"])'
+  )
 
   return pyodideInstance
 }
@@ -191,7 +222,7 @@ function readFileAsBytes(file: File): Promise<Uint8Array> {
   })
 }
 
-const SUPPORTED_EXTENSIONS = new Set(['.csv', '.xlsx', '.xls', '.ofx'])
+const SUPPORTED_EXTENSIONS = new Set(['.csv', '.xlsx', '.xls', '.ofx', '.pdf'])
 
 export function isSupportedFile(file: File): boolean {
   const ext = '.' + (file.name.split('.').pop()?.toLowerCase() ?? '')
@@ -206,7 +237,7 @@ export async function processExtratos(
 
   const supportedFiles = files.filter(isSupportedFile)
   if (supportedFiles.length === 0) {
-    throw new Error('Nenhum arquivo suportado (CSV, XLSX, OFX). PDFs e imagens não são processados localmente.')
+    throw new Error('Nenhum arquivo suportado. Formatos aceitos: CSV, XLSX, OFX, PDF (extrato Itaú).')
   }
 
   onProgress?.(`Lendo ${supportedFiles.length} arquivo(s)...`)
@@ -231,8 +262,9 @@ export async function processExtratos(
   const resultProxy = await pyodide.runPythonAsync(`
 import js
 file_map_py = {}
-for name, arr in js_file_map.items():
-    file_map_py[name] = bytes(arr.to_py())
+file_map_raw = js_file_map.to_py()
+for name, arr in file_map_raw.items():
+    file_map_py[name] = bytes(arr)
 
 results, logs = process_files(file_map_py)
 (results, logs)
@@ -265,6 +297,7 @@ results, logs = process_files(file_map_py)
     Henrique_Itau_Conta: csvObj['Henrique_Itau_Conta'] ?? empty,
     Henrique_Nubank_Conta: csvObj['Henrique_Nubank_Conta'] ?? empty,
     Henrique_Nubank_Cartao: csvObj['Henrique_Nubank_Cartao'] ?? empty,
+    Keth_Itau_Conta: csvObj['Keth_Itau_Conta'] ?? empty,
     Keth_Cartao: csvObj['Keth_Cartao'] ?? empty,
     logs: logsPlain,
   }

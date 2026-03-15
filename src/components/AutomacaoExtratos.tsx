@@ -2,12 +2,13 @@ import { useCallback } from 'react'
 import { useAutomacao } from '../hooks/useAutomacao'
 import { isSupportedFile, type CsvResults } from '../lib/pyodideService'
 
-const ACCEPTED_TYPES = '.csv,.xlsx,.xls,.ofx'
+const ACCEPTED_TYPES = '.csv,.xlsx,.xls,.ofx,.pdf'
 
 const CATEGORIES: { key: keyof CsvResults; label: string; description: string }[] = [
   { key: 'Henrique_Itau_Conta', label: 'Henrique — Itaú Conta', description: 'Extrato conta corrente Itaú' },
   { key: 'Henrique_Nubank_Conta', label: 'Henrique — Nubank Conta', description: 'Movimentações conta Nubank' },
   { key: 'Henrique_Nubank_Cartao', label: 'Henrique — Nubank Cartão', description: 'Fatura cartão Nubank' },
+  { key: 'Keth_Itau_Conta', label: 'Keth — Itaú Conta', description: 'Extrato conta corrente Itaú da Keth' },
   { key: 'Keth_Cartao', label: 'Keth — Cartão', description: 'Faturas de cartão da Keth' },
 ]
 
@@ -72,7 +73,7 @@ export function AutomacaoExtratos() {
         <span style={{ fontSize: '1rem', flexShrink: 0 }}>🔒</span>
         <span>
           <strong>Processamento 100% local</strong> — seus dados não saem do browser.
-          O Python roda diretamente aqui via WebAssembly (Pyodide). Suporta: <strong>CSV, XLSX, XLS, OFX</strong>.
+          O Python roda diretamente aqui via WebAssembly (Pyodide). Suporta: <strong>CSV, XLSX, XLS, OFX, PDF</strong> (extrato Itaú).
         </span>
       </div>
 
@@ -106,7 +107,7 @@ export function AutomacaoExtratos() {
             Arraste os arquivos aqui
           </span>
           <span style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-            ou clique para selecionar — CSV, XLSX, XLS, OFX
+            ou clique para selecionar — CSV, XLSX, XLS, OFX, PDF
           </span>
         </label>
       </div>

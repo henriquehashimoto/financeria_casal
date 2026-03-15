@@ -170,6 +170,62 @@ export function aggregateSubcategoriaByMonth(
 }
 
 /**
+ * Agrega gastos por categoria e mês, somando budget de todas as subcategorias da categoria.
+ * Retorna dados prontos para gráfico histórico com % do budget usado por categoria.
+ */
+export function aggregateCategoriaByMonth(
+  lancamentos: Lancamento[],
+  budget: BudgetMap
+): {
+  months: string[]
+  categorias: string[]
+  data: { month: string; [catKey: string]: number | string }[]
+} {
+  const gastos = lancamentos.filter((l) => l.valor < 0)
+
+  // Build category-level budget by summing subcategory budgets
+  const budgetByCategoria = new Map<string, number>()
+  for (const [key, val] of budget) {
+    const categoria = key.includes('|') ? key.split('|')[0] : key
+    budgetByCategoria.set(categoria, (budgetByCategoria.get(categoria) ?? 0) + val)
+  }
+
+  const monthSet = new Set<string>()
+  const catSet = new Set<string>()
+  const raw = new Map<string, Map<string, number>>()
+
+  for (const l of gastos) {
+    const month = format(startOfMonth(l.data), 'yyyy-MM')
+    const cat = l.categoria
+    monthSet.add(month)
+    catSet.add(cat)
+    if (!raw.has(month)) raw.set(month, new Map())
+    const byMonth = raw.get(month)!
+    byMonth.set(cat, (byMonth.get(cat) ?? 0) + Math.abs(l.valor))
+  }
+
+  const months = Array.from(monthSet).sort()
+  // Only show categories that have a budget defined
+  const categorias = Array.from(catSet)
+    .filter((c) => (budgetByCategoria.get(c) ?? 0) > 0)
+    .sort()
+
+  const data = months.map((month) => {
+    const byMonth = raw.get(month) ?? new Map<string, number>()
+    const row: { month: string; [k: string]: number | string } = { month }
+    for (const cat of categorias) {
+      const spent = byMonth.get(cat) ?? 0
+      const bud = budgetByCategoria.get(cat) ?? 0
+      row[cat] = bud > 0 ? Math.round((spent / bud) * 100) : 0
+      row[`${cat}__abs`] = spent
+    }
+    return row
+  })
+
+  return { months, categorias, data }
+}
+
+/**
  * Agrupa os AggregatedSpend[] por categoria (somando total e budget das subcategorias).
  * Usado para visão macro — quanto resta disponível por categoria.
  */

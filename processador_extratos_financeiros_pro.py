@@ -6,6 +6,7 @@ Suporta:
 - CSV
 - XLSX
 - OFX
+- PDF (extrato conta corrente Itaú)
 
 Saídas:
 Henrique_Nubank_Conta.csv
@@ -17,6 +18,7 @@ Keth_Cartao.csv
 import pandas as pd
 import re
 from pathlib import Path
+import io
 
 OUTPUT_COLUMNS = ["Data","Descricao","Valor"]
 
@@ -90,6 +92,39 @@ def normalize_dataframe(df):
     return out[OUTPUT_COLUMNS]
 
 
+def parse_itau_pdf(path):
+
+    try:
+        import pypdf
+    except ImportError:
+        raise Exception("pypdf não instalado. Execute: pip install pypdf")
+
+    with open(path,"rb") as f:
+        content_bytes = f.read()
+
+    reader = pypdf.PdfReader(io.BytesIO(content_bytes))
+    full_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    line_re = re.compile(r"^(\d{2}/\d{2}/\d{4})\s+(.+?)\s+([-]?\d[\d.]*,\d{2})\s*$")
+    rows = []
+
+    for line in full_text.splitlines():
+        m = line_re.match(line.strip())
+        if m:
+            date_str = m.group(1)
+            desc = m.group(2).strip()
+            val_str = m.group(3)
+            if desc == "SALDO DO DIA":
+                continue
+            rows.append({
+                "Data": normalize_date(date_str),
+                "Descricao": clean_description(desc),
+                "Valor": normalize_value(val_str),
+            })
+
+    return pd.DataFrame(rows, columns=OUTPUT_COLUMNS)
+
+
 def parse_ofx(path):
 
     data=[]
@@ -145,6 +180,9 @@ def read_file(file):
     if ext==".ofx":
         return parse_ofx(file)
 
+    if ext==".pdf":
+        return parse_itau_pdf(file)
+
     raise Exception(f"Formato não suportado: {ext}")
 
 
@@ -157,6 +195,9 @@ def classify_file(name):
 
     if "nubank" in n and "conta" in n:
         return "Henrique_Nubank_Conta"
+
+    if "keth" in n and "itau" in n:
+        return "Keth_Itau_Conta"
 
     if "itau" in n:
         return "Henrique_Itau_Conta"
@@ -178,6 +219,7 @@ def process_folder(input_folder,output_folder):
         "Henrique_Nubank_Conta":[],
         "Henrique_Nubank_Cartao":[],
         "Henrique_Itau_Conta":[],
+        "Keth_Itau_Conta":[],
         "Keth_Cartao":[]
     }
 

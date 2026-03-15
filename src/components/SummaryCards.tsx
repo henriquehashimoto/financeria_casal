@@ -15,6 +15,7 @@ interface SummaryCardsProps {
   totalReceitasHistorico: number
   mediaReceitasMensal: number
   mesSelecionadoLabel?: string
+  ultimaData?: Date | null
 }
 
 export function SummaryCards({
@@ -26,6 +27,7 @@ export function SummaryCards({
   totalReceitasHistorico,
   mediaReceitasMensal,
   mesSelecionadoLabel = 'Mês atual',
+  ultimaData,
 }: SummaryCardsProps) {
   const saldoMes = totalReceitasMes - totalGastosMes
   const saldoHistorico = totalReceitasHistorico - totalGastosHistorico
@@ -73,6 +75,28 @@ export function SummaryCards({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {ultimaData && (
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            fontSize: '0.78rem',
+            color: 'var(--color-text-muted)',
+            background: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 20,
+            padding: '0.25rem 0.75rem',
+            alignSelf: 'flex-start',
+          }}
+        >
+          <span style={{ opacity: 0.6 }}>●</span>
+          Último lançamento:{' '}
+          <strong style={{ color: 'var(--color-text)' }}>
+            {ultimaData.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+          </strong>
+        </div>
+      )}
       <div>
         <div
           style={{
