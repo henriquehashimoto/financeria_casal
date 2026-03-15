@@ -13,6 +13,7 @@ import { GastosPorCategoriaChart } from './components/GastosPorCategoriaChart'
 import { SaudeFinanceira } from './components/SaudeFinanceira'
 import { SaldoDisponivelGrid } from './components/SaldoDisponivelGrid'
 import { BudgetSubcategoriaHistoricoChart } from './components/BudgetSubcategoriaHistoricoChart'
+import { AutomacaoExtratos } from './components/AutomacaoExtratos'
 import { useBudget } from './hooks/useBudget'
 import { useLancamentos } from './hooks/useLancamentos'
 import {
@@ -28,7 +29,7 @@ import {
 } from './lib/aggregations'
 
 type MonthFilter = 'current' | 'all' | string
-type Tab = 'resumo' | 'detalhes'
+type Tab = 'resumo' | 'detalhes' | 'automacao'
 
 function App() {
   const { budget, loading: budgetLoading, error: budgetError } = useBudget()
@@ -144,52 +145,88 @@ function App() {
         )}
       </section>
 
-      {lancamentos.length > 0 && (
-        <>
-          <div
-            style={{
-              display: 'flex',
-              gap: '0.5rem',
-              marginBottom: '1.5rem',
-              borderBottom: '1px solid var(--color-border)',
-            }}
-          >
-            <button
-              onClick={() => setActiveTab('resumo')}
-              style={{
-                padding: '0.75rem 1.25rem',
-                border: 'none',
-                borderBottom: activeTab === 'resumo' ? '2px solid var(--color-accent)' : '2px solid transparent',
-                background: 'transparent',
-                fontFamily: 'inherit',
-                fontSize: '1rem',
-                fontWeight: activeTab === 'resumo' ? 600 : 400,
-                color: activeTab === 'resumo' ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                cursor: 'pointer',
-                marginBottom: -1,
-              }}
-            >
-              Resumo
-            </button>
-            <button
-              onClick={() => setActiveTab('detalhes')}
-              style={{
-                padding: '0.75rem 1.25rem',
-                border: 'none',
-                borderBottom: activeTab === 'detalhes' ? '2px solid var(--color-accent)' : '2px solid transparent',
-                background: 'transparent',
-                fontFamily: 'inherit',
-                fontSize: '1rem',
-                fontWeight: activeTab === 'detalhes' ? 600 : 400,
-                color: activeTab === 'detalhes' ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                cursor: 'pointer',
-                marginBottom: -1,
-              }}
-            >
-              Detalhes dos gastos
-            </button>
-          </div>
+      {/* Tab bar — always visible */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          marginBottom: '1.5rem',
+          borderBottom: '1px solid var(--color-border)',
+        }}
+      >
+        <button
+          onClick={() => setActiveTab('resumo')}
+          disabled={lancamentos.length === 0}
+          style={{
+            padding: '0.75rem 1.25rem',
+            border: 'none',
+            borderBottom: activeTab === 'resumo' ? '2px solid var(--color-accent)' : '2px solid transparent',
+            background: 'transparent',
+            fontFamily: 'inherit',
+            fontSize: '1rem',
+            fontWeight: activeTab === 'resumo' ? 600 : 400,
+            color:
+              lancamentos.length === 0
+                ? 'var(--color-border)'
+                : activeTab === 'resumo'
+                  ? 'var(--color-accent)'
+                  : 'var(--color-text-muted)',
+            cursor: lancamentos.length === 0 ? 'default' : 'pointer',
+            marginBottom: -1,
+          }}
+        >
+          Resumo
+        </button>
+        <button
+          onClick={() => setActiveTab('detalhes')}
+          disabled={lancamentos.length === 0}
+          style={{
+            padding: '0.75rem 1.25rem',
+            border: 'none',
+            borderBottom: activeTab === 'detalhes' ? '2px solid var(--color-accent)' : '2px solid transparent',
+            background: 'transparent',
+            fontFamily: 'inherit',
+            fontSize: '1rem',
+            fontWeight: activeTab === 'detalhes' ? 600 : 400,
+            color:
+              lancamentos.length === 0
+                ? 'var(--color-border)'
+                : activeTab === 'detalhes'
+                  ? 'var(--color-accent)'
+                  : 'var(--color-text-muted)',
+            cursor: lancamentos.length === 0 ? 'default' : 'pointer',
+            marginBottom: -1,
+          }}
+        >
+          Detalhes dos gastos
+        </button>
+        <button
+          onClick={() => setActiveTab('automacao')}
+          style={{
+            padding: '0.75rem 1.25rem',
+            border: 'none',
+            borderBottom: activeTab === 'automacao' ? '2px solid var(--color-accent)' : '2px solid transparent',
+            background: 'transparent',
+            fontFamily: 'inherit',
+            fontSize: '1rem',
+            fontWeight: activeTab === 'automacao' ? 600 : 400,
+            color: activeTab === 'automacao' ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            cursor: 'pointer',
+            marginBottom: -1,
+          }}
+        >
+          Automação
+        </button>
+      </div>
 
+      {activeTab === 'automacao' && (
+        <section style={{ marginBottom: '2rem' }}>
+          <AutomacaoExtratos />
+        </section>
+      )}
+
+      {activeTab !== 'automacao' && lancamentos.length > 0 && (
+        <>
           {activeTab === 'resumo' && (
           <>
           <section style={{ marginBottom: '1.5rem' }}>
@@ -311,7 +348,7 @@ function App() {
         </>
       )}
 
-      {!budgetLoading && !budgetError && lancamentos.length === 0 && (
+      {activeTab !== 'automacao' && !budgetLoading && !budgetError && lancamentos.length === 0 && (
         <div
           style={{
             padding: '3rem',
