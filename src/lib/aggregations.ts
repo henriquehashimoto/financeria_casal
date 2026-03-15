@@ -229,6 +229,91 @@ export function aggregateCategoriaByMonth(
  * Agrupa os AggregatedSpend[] por categoria (somando total e budget das subcategorias).
  * Usado para visão macro — quanto resta disponível por categoria.
  */
+/**
+ * Dados para tabela de resumo: total no período, % vs budget, média 3 meses, % média vs budget.
+ * Por categoria e subcategoria.
+ */
+export function aggregateResumoBudgetTable(
+  lancamentos: Lancamento[],
+  budget: BudgetMap,
+  filteredMonth?: Date
+): {
+  categoria: string
+  subcategoria: string
+  totalGastoPeriodo: number
+  percentualGastoVsBudget: number | null
+  mediaGasto3Meses: number
+  percentualMediaVsBudget: number | null
+  budget: number
+}[] {
+  const gastos = lancamentos.filter((l) => l.valor < 0)
+
+  // Meses disponíveis (ordenados desc)
+  const monthSet = new Set<string>()
+  for (const l of gastos) {
+    monthSet.add(format(startOfMonth(l.data), 'yyyy-MM'))
+  }
+  const mesesOrdenados = Array.from(monthSet).sort().reverse()
+
+  // Últimos 3 meses = os 3 mais recentes no dataset
+  const ultimos3Meses = mesesOrdenados.slice(0, 3)
+
+  // Gasto por key e mês
+  const porMes = new Map<string, Map<string, number>>()
+  for (const l of gastos) {
+    const month = format(startOfMonth(l.data), 'yyyy-MM')
+    const key = budgetKey(l.categoria, l.subcategoria)
+    if (!porMes.has(month)) porMes.set(month, new Map())
+    const byKey = porMes.get(month)!
+    byKey.set(key, (byKey.get(key) ?? 0) + Math.abs(l.valor))
+  }
+
+  const result: {
+    categoria: string
+    subcategoria: string
+    totalGastoPeriodo: number
+    percentualGastoVsBudget: number | null
+    mediaGasto3Meses: number
+    percentualMediaVsBudget: number | null
+    budget: number
+  }[] = []
+
+  for (const [key, bud] of budget) {
+    if (bud <= 0) continue
+    const [categoria, subcategoria] = key.includes('|') ? key.split('|') : [key, '']
+
+    // Total no período selecionado
+    let totalGastoPeriodo = 0
+    if (filteredMonth) {
+      const monthKey = format(filteredMonth, 'yyyy-MM')
+      totalGastoPeriodo = porMes.get(monthKey)?.get(key) ?? 0
+    } else {
+      for (const [, byKey] of porMes) {
+        totalGastoPeriodo += byKey.get(key) ?? 0
+      }
+    }
+
+    // Média últimos 3 meses
+    let soma3 = 0
+    for (const m of ultimos3Meses) {
+      soma3 += porMes.get(m)?.get(key) ?? 0
+    }
+    const mediaGasto3Meses = ultimos3Meses.length > 0 ? soma3 / ultimos3Meses.length : 0
+
+    result.push({
+      categoria,
+      subcategoria,
+      totalGastoPeriodo,
+      percentualGastoVsBudget: bud > 0 ? (totalGastoPeriodo / bud) * 100 : null,
+      mediaGasto3Meses,
+      percentualMediaVsBudget: bud > 0 ? (mediaGasto3Meses / bud) * 100 : null,
+      budget: bud,
+    })
+  }
+
+  return result.sort((a, b) => b.totalGastoPeriodo - a.totalGastoPeriodo)
+}
+
 export function aggregateBudgetByCategory(aggregated: AggregatedSpend[]): CategoryBudgetSummary[] {
   const map = new Map<string, { gastoTotal: number; budgetTotal: number }>()
 

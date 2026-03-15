@@ -13,6 +13,7 @@ import { GastosPorCategoriaChart } from './components/GastosPorCategoriaChart'
 import { SaudeFinanceira } from './components/SaudeFinanceira'
 import { SaldoDisponivelGrid } from './components/SaldoDisponivelGrid'
 import { BudgetSubcategoriaHistoricoChart } from './components/BudgetSubcategoriaHistoricoChart'
+import { TabelaResumoBudget } from './components/TabelaResumoBudget'
 import { AutomacaoExtratos } from './components/AutomacaoExtratos'
 import { useBudget } from './hooks/useBudget'
 import { useLancamentos } from './hooks/useLancamentos'
@@ -25,6 +26,7 @@ import {
   aggregateReceitasAndGastosByMonth,
   receitasMapToAggregated,
   aggregateBudgetByCategory,
+  aggregateResumoBudgetTable,
   calcularSaudeFinanceira,
 } from './lib/aggregations'
 
@@ -106,6 +108,11 @@ function App() {
   const chartData = useMemo(() => aggregateReceitasAndGastosByMonth(lancamentos), [lancamentos])
 
   const saldoDisponivelData = useMemo(() => aggregateBudgetByCategory(aggregated), [aggregated])
+
+  const resumoBudgetTableData = useMemo(
+    () => (budget ? aggregateResumoBudgetTable(lancamentos, budget, filteredMonth) : []),
+    [lancamentos, budget, filteredMonth]
+  )
 
   const saudeData = useMemo(
     () => calcularSaudeFinanceira(aggregated, summary.totalReceitasMes, summary.totalGastosMes),
@@ -269,6 +276,20 @@ function App() {
               mesSelecionadoLabel={summary.mesSelecionadoLabel}
               ultimaData={ultimaData}
             />
+            {resumoBudgetTableData.length > 0 && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <TabelaResumoBudget
+                data={resumoBudgetTableData}
+                periodoLabel={
+                  monthFilter === 'current'
+                    ? 'mês atual'
+                    : monthFilter === 'all'
+                      ? 'histórico (todos)'
+                      : format(new Date(monthFilter + '-01'), 'MMMM yyyy', { locale: ptBR })
+                }
+                />
+              </div>
+            )}
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
