@@ -1,0 +1,231 @@
+import { format, startOfMonth, isSameMonth } from 'date-fns'
+import { budgetKey } from './mapping'
+import type { Lancamento, AggregatedSpend, BudgetMap, CategoryBudgetSummary, SaudeFinanceiraData } from '../types'
+
+export function aggregateByCategory(
+  lancamentos: Lancamento[],
+  monthFilter?: Date
+): Map<string, number> {
+  const map = new Map<string, number>()
+  const gastos = lancamentos.filter((l) => l.valor < 0)
+
+  for (const l of gastos) {
+    if (monthFilter && !isSameMonth(l.data, monthFilter)) continue
+    const key = budgetKey(l.categoria, l.subcategoria)
+    map.set(key, (map.get(key) ?? 0) + Math.abs(l.valor))
+  }
+
+  return map
+}
+
+export function aggregateReceitasByCategory(
+  lancamentos: Lancamento[],
+  monthFilter?: Date
+): Map<string, number> {
+  const map = new Map<string, number>()
+  const receitas = lancamentos.filter((l) => l.valor > 0)
+
+  for (const l of receitas) {
+    if (monthFilter && !isSameMonth(l.data, monthFilter)) continue
+    const key = budgetKey(l.categoria, l.subcategoria)
+    map.set(key, (map.get(key) ?? 0) + l.valor)
+  }
+
+  return map
+}
+
+export function compareWithBudget(
+  aggregated: Map<string, number>,
+  budget: BudgetMap
+): AggregatedSpend[] {
+  const result: AggregatedSpend[] = []
+  const seen = new Set<string>()
+
+  for (const [key, total] of aggregated) {
+    seen.add(key)
+    const budgetVal = budget.get(key) ?? null
+    const percentualUsado = budgetVal !== null && budgetVal > 0
+      ? (total / budgetVal) * 100
+      : null
+    const [categoria, subcategoria] = key.includes('|')
+      ? key.split('|')
+      : [key, '']
+    result.push({
+      categoria,
+      subcategoria,
+      total,
+      budget: budgetVal,
+      percentualUsado,
+    })
+  }
+
+  for (const [key, budgetVal] of budget) {
+    if (seen.has(key) || budgetVal === 0) continue
+    const [categoria, subcategoria] = key.includes('|') ? key.split('|') : [key, '']
+    result.push({
+      categoria,
+      subcategoria,
+      total: 0,
+      budget: budgetVal,
+      percentualUsado: 0,
+    })
+  }
+
+  return result.sort((a, b) => b.total - a.total)
+}
+
+export function receitasMapToAggregated(map: Map<string, number>): AggregatedSpend[] {
+  return Array.from(map.entries())
+    .map(([key, total]) => {
+      const [categoria, subcategoria] = key.includes('|') ? key.split('|') : [key, '']
+      return { categoria, subcategoria, total, budget: null, percentualUsado: null }
+    })
+    .sort((a, b) => b.total - a.total)
+}
+
+export function aggregateByMonth(lancamentos: Lancamento[]): Map<string, number> {
+  const map = new Map<string, number>()
+  const gastos = lancamentos.filter((l) => l.valor < 0)
+
+  for (const l of gastos) {
+    const monthKey = format(startOfMonth(l.data), 'yyyy-MM')
+    map.set(monthKey, (map.get(monthKey) ?? 0) + Math.abs(l.valor))
+  }
+
+  return map
+}
+
+export function aggregateReceitasByMonth(lancamentos: Lancamento[]): Map<string, number> {
+  const map = new Map<string, number>()
+  const receitas = lancamentos.filter((l) => l.valor > 0)
+
+  for (const l of receitas) {
+    const monthKey = format(startOfMonth(l.data), 'yyyy-MM')
+    map.set(monthKey, (map.get(monthKey) ?? 0) + l.valor)
+  }
+
+  return map
+}
+
+export function aggregateReceitasAndGastosByMonth(
+  lancamentos: Lancamento[]
+): { month: string; receitas: number; gastos: number; saldo: number }[] {
+  const receitasByMonth = aggregateReceitasByMonth(lancamentos)
+  const gastosByMonth = aggregateByMonth(lancamentos)
+  const months = new Set([...receitasByMonth.keys(), ...gastosByMonth.keys()])
+
+  return Array.from(months)
+    .sort()
+    .map((month) => {
+      const receitas = receitasByMonth.get(month) ?? 0
+      const gastos = gastosByMonth.get(month) ?? 0
+      return { month, receitas, gastos, saldo: receitas - gastos }
+    })
+}
+
+/**
+ * Agrega gastos por subcategoria (categoria|subcategoria) e mês.
+ * Retorna dados prontos para gráfico histórico com % do budget usado.
+ */
+export function aggregateSubcategoriaByMonth(
+  lancamentos: Lancamento[],
+  budget: BudgetMap
+): {
+  months: string[]
+  subcategorias: string[]
+  data: { month: string; [subcatKey: string]: number | string }[]
+} {
+  const gastos = lancamentos.filter((l) => l.valor < 0)
+
+  const monthSet = new Set<string>()
+  const subcatSet = new Set<string>()
+  const raw = new Map<string, Map<string, number>>()
+
+  for (const l of gastos) {
+    const month = format(startOfMonth(l.data), 'yyyy-MM')
+    const key = budgetKey(l.categoria, l.subcategoria)
+    monthSet.add(month)
+    subcatSet.add(key)
+    if (!raw.has(month)) raw.set(month, new Map())
+    const byMonth = raw.get(month)!
+    byMonth.set(key, (byMonth.get(key) ?? 0) + Math.abs(l.valor))
+  }
+
+  const months = Array.from(monthSet).sort()
+  const subcategorias = Array.from(subcatSet).filter((k) => budget.has(k)).sort()
+
+  const data = months.map((month) => {
+    const byMonth = raw.get(month) ?? new Map<string, number>()
+    const row: { month: string; [k: string]: number | string } = { month }
+    for (const key of subcategorias) {
+      const spent = byMonth.get(key) ?? 0
+      const bud = budget.get(key) ?? 0
+      row[key] = bud > 0 ? Math.round((spent / bud) * 100) : 0
+      row[`${key}__abs`] = spent
+    }
+    return row
+  })
+
+  return { months, subcategorias, data }
+}
+
+/**
+ * Agrupa os AggregatedSpend[] por categoria (somando total e budget das subcategorias).
+ * Usado para visão macro — quanto resta disponível por categoria.
+ */
+export function aggregateBudgetByCategory(aggregated: AggregatedSpend[]): CategoryBudgetSummary[] {
+  const map = new Map<string, { gastoTotal: number; budgetTotal: number }>()
+
+  for (const row of aggregated) {
+    const existing = map.get(row.categoria) ?? { gastoTotal: 0, budgetTotal: 0 }
+    map.set(row.categoria, {
+      gastoTotal: existing.gastoTotal + row.total,
+      budgetTotal: existing.budgetTotal + (row.budget ?? 0),
+    })
+  }
+
+  return Array.from(map.entries())
+    .filter(([, v]) => v.budgetTotal > 0)
+    .map(([categoria, { gastoTotal, budgetTotal }]) => {
+      const saldoDisponivel = budgetTotal - gastoTotal
+      const percentualUsado = budgetTotal > 0 ? (gastoTotal / budgetTotal) * 100 : 0
+      return { categoria, gastoTotal, budgetTotal, saldoDisponivel, percentualUsado }
+    })
+    .sort((a, b) => a.saldoDisponivel - b.saldoDisponivel)
+}
+
+/**
+ * Calcula o estado de saúde financeira do mês para o painel de semáforo.
+ */
+export function calcularSaudeFinanceira(
+  aggregated: AggregatedSpend[],
+  totalReceitas: number,
+  totalGastos: number
+): SaudeFinanceiraData {
+  const budgetTotal = aggregated.reduce((s, r) => s + (r.budget ?? 0), 0)
+  const gastoTotal = aggregated.reduce((s, r) => s + r.total, 0)
+  const saldoMes = totalReceitas - totalGastos
+  const percentualBudgetUsado = budgetTotal > 0 ? (gastoTotal / budgetTotal) * 100 : 0
+  const categoriasAlerta = aggregated.filter(
+    (r) => r.percentualUsado !== null && r.percentualUsado >= 80 && (r.budget ?? 0) > 0
+  ).length
+
+  let status: SaudeFinanceiraData['status']
+  if (saldoMes < 0 || gastoTotal > budgetTotal) {
+    status = 'alerta'
+  } else if (categoriasAlerta > 0) {
+    status = 'atencao'
+  } else {
+    status = 'ok'
+  }
+
+  return {
+    status,
+    budgetTotal,
+    gastoTotal,
+    saldoMes,
+    totalReceitas,
+    percentualBudgetUsado,
+    categoriasAlerta,
+  }
+}
