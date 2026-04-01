@@ -1,4 +1,3 @@
-const GEMINI_API_KEY = 'AIzaSyCs1PfhR0fJyzp6aHqUSJ_Y258oI-olcDg'
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com'
 const GEMINI_MODEL = 'gemini-2.0-flash'
 
@@ -121,6 +120,13 @@ export async function processExtratos(
   files: File[],
   onProgress?: (msg: string) => void
 ): Promise<CsvResults> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim()
+  if (!apiKey) {
+    throw new Error(
+      'Configure VITE_GEMINI_API_KEY no arquivo .env na raiz do projeto (veja .env.example).'
+    )
+  }
+
   onProgress?.('Lendo arquivos...')
 
   const fileParts: { inlineData: { mimeType: string; data: string }; text?: undefined }[] = []
@@ -161,7 +167,7 @@ export async function processExtratos(
   }
 
   const genRes = await fetch(
-    `${GEMINI_BASE}/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+    `${GEMINI_BASE}/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
