@@ -1,28 +1,63 @@
-import { useState, useEffect } from 'react'
-import { parseBudgetCsv } from '../lib/budgetParser'
-import type { BudgetMap } from '../types'
+import { useState, useEffect, useCallback } from 'react'
+import { parseMonthlyBudgetCsv } from '../lib/budgetParser'
+import { budgetKey } from '../lib/mapping'
+import type { MonthlyBudgetData } from '../types'
 
-export function useBudget(): { budget: BudgetMap | null; loading: boolean; error: string | null } {
-  const [budget, setBudget] = useState<BudgetMap | null>(null)
+export function useBudget() {
+  const [data, setData] = useState<MonthlyBudgetData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/data/planejamento_budget.csv')
+    fetch('/data/budget_mensal.csv')
       .then((r) => {
         if (!r.ok) throw new Error('Arquivo de budget não encontrado')
         return r.text()
       })
       .then((text) => {
-        setBudget(parseBudgetCsv(text))
+        setData(parseMonthlyBudgetCsv(text))
         setError(null)
       })
       .catch((e) => {
         setError(e instanceof Error ? e.message : 'Erro ao carregar budget')
-        setBudget(null)
+        setData(null)
       })
       .finally(() => setLoading(false))
   }, [])
 
-  return { budget, loading, error }
+  /** Atualiza o valor de uma subcategoria em um mês específico. value=null remove o budget. */
+  const updateBudget = useCallback(
+    (month: string, categoria: string, subcategoria: string, value: number | null) => {
+      setData((prev) => {
+        if (!prev) return prev
+        const key = budgetKey(categoria, subcategoria)
+        const newBudgets = new Map(prev.budgets)
+
+        // garantir que o mês existe no map e na lista de meses
+        const monthMap = new Map(newBudgets.get(month) ?? [])
+        if (value === null || value <= 0) {
+          monthMap.delete(key)
+        } else {
+          monthMap.set(key, value)
+        }
+        newBudgets.set(month, monthMap)
+
+        // adicionar mês à lista se ainda não existir
+        const months = prev.months.includes(month)
+          ? prev.months
+          : [...prev.months, month].sort()
+
+        return { ...prev, months, budgets: newBudgets }
+      })
+    },
+    []
+  )
+
+  /** Substitui todo o estado com dados importados de um CSV. */
+  const replaceBudget = useCallback((newData: MonthlyBudgetData) => {
+    setData(newData)
+    setError(null)
+  }, [])
+
+  return { data, loading, error, updateBudget, replaceBudget }
 }
