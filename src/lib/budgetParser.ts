@@ -116,6 +116,7 @@ export function parseMonthlyBudgetCsv(csvText: string): MonthlyBudgetData {
       const raw = cols[idx + 2]?.trim() ?? ''
       if (raw === '') return
       const value = parseFloat(raw)
+      // value <= 0 treated as "no budget" (same as empty cell)
       if (!isNaN(value) && value > 0) {
         budgets.get(month)!.set(key, value)
       }
@@ -138,7 +139,7 @@ export function exportMonthlyBudgetCsv(data: MonthlyBudgetData): string {
     const key = budgetKey(categoria, subcategoria)
     const values = data.months.map((month) => {
       const val = data.budgets.get(month)?.get(key)
-      return val !== undefined ? String(val) : ''
+      return val !== undefined ? val.toFixed(2) : ''
     })
     return [escapeField(categoria), escapeField(subcategoria), ...values].join(',')
   })
