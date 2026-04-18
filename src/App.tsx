@@ -15,6 +15,7 @@ import { SaldoDisponivelGrid } from './components/SaldoDisponivelGrid'
 import { BudgetSubcategoriaHistoricoChart } from './components/BudgetSubcategoriaHistoricoChart'
 import { TabelaResumoBudget } from './components/TabelaResumoBudget'
 import { AutomacaoExtratos } from './components/AutomacaoExtratos'
+import { GerenciarBudget } from './components/GerenciarBudget'
 import { useBudget } from './hooks/useBudget'
 import { useLancamentos } from './hooks/useLancamentos'
 import {
@@ -34,7 +35,7 @@ type MonthFilter = 'current' | 'all' | string
 type Tab = 'resumo' | 'detalhes' | 'automacao'
 
 function App() {
-  const { budget, loading: budgetLoading, error: budgetError } = useBudget()
+  const { data: monthlyBudgetData, loading: budgetLoading, error: budgetError, updateBudget, replaceBudget } = useBudget()
   const { lancamentos, loading: fileLoading, error: fileError, loadFile } = useLancamentos()
   const [monthFilter, setMonthFilter] = useState<MonthFilter>('current')
   const [activeTab, setActiveTab] = useState<Tab>('resumo')
@@ -45,9 +46,20 @@ function App() {
     return monthFilter ? startOfMonth(new Date(monthFilter + '-01')) : undefined
   }, [monthFilter])
 
+  const budgetMonthKey = useMemo(() => {
+    if (monthFilter === 'all') return null
+    if (monthFilter === 'current') return format(new Date(), 'yyyy-MM')
+    return monthFilter
+  }, [monthFilter])
+
+  const budget = useMemo(() => {
+    if (!monthlyBudgetData || !budgetMonthKey) return new Map<string, number>()
+    return monthlyBudgetData.budgets.get(budgetMonthKey) ?? new Map<string, number>()
+  }, [monthlyBudgetData, budgetMonthKey])
+
   const aggregated = useMemo(() => {
     const agg = aggregateByCategory(lancamentos, filteredMonth)
-    return budget ? compareWithBudget(agg, budget) : []
+    return compareWithBudget(agg, budget)
   }, [lancamentos, budget, filteredMonth])
 
   const aggregatedReceitas = useMemo(() => {
@@ -110,7 +122,7 @@ function App() {
   const saldoDisponivelData = useMemo(() => aggregateBudgetByCategory(aggregated), [aggregated])
 
   const resumoBudgetTableData = useMemo(
-    () => (budget ? aggregateResumoBudgetTable(lancamentos, budget, filteredMonth) : []),
+    () => (budget.size > 0 ? aggregateResumoBudgetTable(lancamentos, budget, filteredMonth) : []),
     [lancamentos, budget, filteredMonth]
   )
 
@@ -156,6 +168,17 @@ function App() {
           </div>
         )}
       </section>
+
+      {monthlyBudgetData && (
+        <section style={{ marginBottom: '1.5rem' }}>
+          <GerenciarBudget
+            data={monthlyBudgetData}
+            selectedMonth={budgetMonthKey ?? format(new Date(), 'yyyy-MM')}
+            onUpdate={updateBudget}
+            onReplace={replaceBudget}
+          />
+        </section>
+      )}
 
       {/* Tab bar — always visible */}
       <div
@@ -361,7 +384,7 @@ function App() {
             <MonthlyChart data={chartData} />
           </section>
 
-          {budget && (
+          {budget.size > 0 && (
             <section style={{ marginBottom: '2rem', marginTop: '2rem' }}>
               <BudgetSubcategoriaHistoricoChart lancamentos={lancamentos} budget={budget} />
             </section>
