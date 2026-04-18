@@ -36,3 +36,15 @@ export interface SaudeFinanceiraData {
 }
 
 export type BudgetMap = Map<string, number>
+
+/** Map<"YYYY-MM", Map<"categoria|subcategoria", number>> */
+export type MonthlyBudgetMap = Map<string, Map<string, number>>
+
+export interface MonthlyBudgetData {
+  /** Lista ordenada de todas as subcategorias conhecidas (extraída das linhas do CSV) */
+  subcategorias: { categoria: string; subcategoria: string }[]
+  /** Lista ordenada de colunas de mês encontradas no CSV ("YYYY-MM") */
+  months: string[]
+  /** Budgets por mês e por chave categoria|subcategoria */
+  budgets: MonthlyBudgetMap
+}
