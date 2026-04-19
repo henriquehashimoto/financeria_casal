@@ -1,49 +1,49 @@
-categoria,subcategoria,2026-04
-Alimentação,Restaurantes e Bares,384.73
-Alimentação,Delivery,111.70
-Alimentação,Padaria,38.78
-Assinaturas,Seguro Celular,91.04
-Assinaturas,Streaming,72.94
-Assinaturas,Serviços e Apps,161.91
-Educação,MBA,1605.00
-Educação,Livros,154.06
-Educação,App e Serviços,202.41
-Educação,Cursos,103.18
-Gastos Pessoais,Salão,340.59
-Gastos Pessoais,Eletrônicos e Gadgets,95.48
-Gastos Pessoais,Roupas e Sapatos,239.35
-Lazer,"Cinema, Teatro",151.71
-Lazer,Outros Lazer,76.38
-Moradia,Parcela Ap,4056.87
-Moradia,Aluguel,2263.46
-Moradia,Condominio,722.52
-Moradia,Internet,382.71
-Moradia,Itens de casa,269.93
-Moradia,Energia,160.31
-Moradia,Água,
-Moradia,Manutenção,533.50
-Outros Gastos,Doação,301.34
-Outros Gastos,Presente,609.80
-Outros Gastos,Casamento,3393.56
-Outros Gastos,Outros,254.02
-Pets,Banho e Tosa,295.90
-Pets,Consulta Pet,347.20
-Pets,Petshop,210.29
-Saúde,Consulta e Procedimento,1466.65
-Saúde,Academia,529.05
-Saúde,Farmacia,234.54
-Saúde,Esportes e Atividades,393.94
-Saúde,Plano de Saúde,
-Saúde,Suplemento,247.36
-Supermercado,Lojinha,225.47
-Supermercado,Mercado,379.96
-Supermercado,Feira,89.28
-Transporte,Combustível,421.70
-Transporte,Aplicativo,256.60
-Transporte,Estacionamento,65.98
-Transporte,Mecanico,611.24
-Transporte,Pedagio,167.20
-Viagem,Gastos Viagens,512.77
-Viagem,Hoteis,2538.82
-Viagem,Passagem,5574.31
-Viagem,Turismo,
+categoria,subcategoria,2026-01,2026-02,2026-03,2026-04
+Alimentação,Restaurantes e Bares,600.00,600.00,600.00,600.00
+Alimentação,Delivery,100.00,100.00,100.00,100.00
+Alimentação,Padaria,50.00,50.00,50.00,50.00
+Assinaturas,Seguro Celular,138.00,138.00,138.00,138.00
+Assinaturas,Streaming,126.00,126.00,126.00,126.00
+Assinaturas,Serviços e Apps,161.91,161.91,161.91,161.91
+Educação,MBA,1605.00,1605.00,1605.00,1605.00
+Educação,Livros,80.00,80.00,80.00,80.00
+Educação,App e Serviços,95.00,95.00,95.00,95.00
+Educação,Cursos,47.00,47.00,47.00,47.00
+Gastos Pessoais,Salão,200.00,200.00,200.00,200.00
+Gastos Pessoais,Eletrônicos e Gadgets,250.00,250.00,250.00,250.00
+Gastos Pessoais,Roupas e Sapatos,500.00,500.00,500.00,500.00
+Lazer,"Cinema, Teatro",100.00,100.00,100.00,100.00
+Lazer,Outros Lazer,50.00,50.00,50.00,50.00
+Moradia,Parcela Ap,3075.00,3075.00,3075.00,3075.00
+Moradia,Aluguel,2270.00,2270.00,2270.00,2270.00
+Moradia,Condominio,700.00,700.00,700.00,700.00
+Moradia,Internet,470.00,470.00,470.00,470.00
+Moradia,Itens de casa,200.00,200.00,200.00,200.00
+Moradia,Energia,179.00,179.00,179.00,179.00
+Moradia,Água,,,,
+Moradia,Manutenção,,,,
+Outros Gastos,Doação,250.00,250.00,250.00,250.00
+Outros Gastos,Presente,100.00,100.00,100.00,100.00
+Outros Gastos,Casamento,3600.00,3600.00,3600.00,3600.00
+Outros Gastos,Outros,,,,
+Pets,Banho e Tosa,250.00,250.00,250.00,250.00
+Pets,Consulta Pet,500.00,500.00,500.00,500.00
+Pets,Petshop,,,,
+Saúde,Consulta e Procedimento,,,,
+Saúde,Academia,800.00,800.00,800.00,800.00
+Saúde,Farmacia,350.00,350.00,350.00,350.00
+Saúde,Esportes e Atividades,,,,
+Saúde,Plano de Saúde,,,,
+Saúde,Suplemento,,,,
+Supermercado,Lojinha,200.00,200.00,200.00,200.00
+Supermercado,Mercado,300.00,300.00,300.00,300.00
+Supermercado,Feira,150.00,150.00,150.00,150.00
+Transporte,Combustível,350.00,350.00,350.00,350.00
+Transporte,Aplicativo,200.00,200.00,200.00,200.00
+Transporte,Estacionamento,100.00,100.00,100.00,100.00
+Transporte,Mecanico,,,,
+Transporte,Pedagio,,,,
+Viagem,Gastos Viagens,,,,
+Viagem,Hoteis,,,,
+Viagem,Passagem,,,,
+Viagem,Turismo,,,,
