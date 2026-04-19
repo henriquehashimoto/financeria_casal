@@ -66,7 +66,25 @@ export function GerenciarBudget({ data, selectedMonth, onUpdate, onReplace }: Pr
   }
 
   function handleExport() {
-    const csv = exportMonthlyBudgetCsv(data)
+    // Merge any pending (not yet blurred) local edits into the export data
+    const pendingMonthMap = new Map(data.budgets.get(selectedMonth) ?? [])
+    for (const [key, raw] of Object.entries(localValues)) {
+      const trimmed = raw.trim()
+      if (trimmed === '') {
+        pendingMonthMap.delete(key)
+      } else {
+        const num = parseFloat(trimmed.replace(',', '.'))
+        if (!isNaN(num) && num > 0) pendingMonthMap.set(key, num)
+      }
+    }
+    const exportBudgets = new Map(data.budgets)
+    exportBudgets.set(selectedMonth, pendingMonthMap)
+    const exportMonths = data.months.includes(selectedMonth)
+      ? data.months
+      : [...data.months, selectedMonth].sort()
+    const exportData: MonthlyBudgetData = { ...data, months: exportMonths, budgets: exportBudgets }
+
+    const csv = exportMonthlyBudgetCsv(exportData)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -261,7 +279,12 @@ export function GerenciarBudget({ data, selectedMonth, onUpdate, onReplace }: Pr
 
           <p style={{ margin: '0.75rem 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
             Alterações são aplicadas imediatamente na UI. Use "Exportar CSV" para salvar em{' '}
-            <code>public/data/budget_mensal.csv</code> e persistir entre sessões.
+            <code>public/data/budget_mensal.csv</code> e persistir entre sessões.{' '}
+            O arquivo exportado inclui <strong>todos os meses</strong>:{' '}
+            {data.months.length > 0
+              ? data.months.map(formatMonthLabel).join(', ')
+              : '(nenhum ainda)'}
+            .
           </p>
         </div>
       )}

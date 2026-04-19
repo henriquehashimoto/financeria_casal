@@ -53,9 +53,28 @@ export function useBudget() {
     []
   )
 
-  /** Substitui todo o estado com dados importados de um CSV. */
-  const replaceBudget = useCallback((newData: MonthlyBudgetData) => {
-    setData(newData)
+  /**
+   * Faz merge dos dados importados com o estado atual.
+   * Meses do arquivo importado sobrescrevem os do estado; meses que só existem
+   * no estado atual são preservados. A lista de subcategorias vem do arquivo importado.
+   */
+  const replaceBudget = useCallback((importedData: MonthlyBudgetData) => {
+    setData((prev) => {
+      if (!prev) return importedData
+
+      // Meses: união de existentes + importados (importados sobrescrevem valores)
+      const monthsSet = new Set([...prev.months, ...importedData.months])
+      const months = Array.from(monthsSet).sort()
+
+      const budgets = new Map(prev.budgets)
+      importedData.budgets.forEach((monthMap, month) => {
+        budgets.set(month, new Map(monthMap))
+      })
+
+      // Lista de subcategorias vem do arquivo importado (define estrutura de linhas)
+      // Subcategorias que só existem no estado atual são descartadas — elas não estão no CSV
+      return { subcategorias: importedData.subcategorias, months, budgets }
+    })
     setError(null)
   }, [])
 
